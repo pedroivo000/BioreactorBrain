@@ -1,11 +1,11 @@
-#include <LiquidCrystal.h>
+#include <Adafruit_LiquidCrystal.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <SD.h>
 #include <Ethernet.h>
 ///////////////////////////////// VARIABLE DECLARATION AND LIBRARY SETUP ////////////////////////////////////////////
-//Initialize the LCD library with the numbers of the interface pins:
-LiquidCrystal lcd(19,18,17,16,15,14); //LCD pin name: RS, E, DB4, DB5, DB6, DB7
+//Initialize the LCD library with I2C:
+Adafruit_LiquidCrystal lcd(0);
 
 //Initialize pins:
 const int tempProbe = A0;
