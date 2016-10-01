@@ -10,6 +10,7 @@ Adafruit_LiquidCrystal lcd(0);
 //Initialize pins:
 const int tempProbe = A0;
 byte padRelayPin = 22;
+byte motorPin = 8;
 
 //Log file:
 File logFile;
@@ -37,6 +38,7 @@ const long measureInterval = 5000;
 
 void setup() {
   pinMode(padRelayPin, OUTPUT);
+  pinMode(motorPin, OUTPUT);
 
   Serial.begin(9600);
   Wire.begin(); //Initialize I2C bus as slave
@@ -147,7 +149,17 @@ void loop() {
         digitalWrite(padRelayPin, LOW); //turn pad to heat water
     }else if (temp >30) {
         digitalWrite(padRelayPin, HIGH); //shut pad off when desired temperature is reached
-    }  
+    }
+
+    //Motor control:
+    //First: testing if we can control speed using the serial input:
+    while(Serial.available()>0){
+      int motorSpeed = Serial.parseInt();
+      motorSpeed = constrain(motorSpeed, 0,255);
+
+      Serial.println(motorSpeed);
+      analogWrite(motorPin, motorSpeed);
+    }
   } 
   else {
     ////////////////////////////// WEB SERVER //////////////////////////////////
