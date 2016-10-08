@@ -92,7 +92,6 @@ void setup() {
   if(Ethernet.begin(mac) == 0) {
     lcd.setCursor(11,3);
     lcd.print(": X");
-    return;
   } else{
     lcd.setCursor(11,3);
     lcd.print(": OK");
@@ -145,21 +144,22 @@ void loop() {
 
     //////////////////////////// REACTOR CONTROL ////////////////////////////////
     //Heating pad control:
-    if(temp < 30){
+    if(temp < 37){
         digitalWrite(padRelayPin, LOW); //turn pad to heat water
-    }else if (temp >30) {
+    }else if (temp >37) {
         digitalWrite(padRelayPin, HIGH); //shut pad off when desired temperature is reached
     }
 
     //Motor control:
-    //First: testing if we can control speed using the serial input:
-    while(Serial.available()>0){
-      int motorSpeed = Serial.parseInt();
-      motorSpeed = constrain(motorSpeed, 0,255);
-
-      Serial.println(motorSpeed);
-      analogWrite(motorPin, motorSpeed);
-    }
+//    //First: testing if we can control speed using the serial input:
+//    while(Serial.available()>0){
+//      int motorSpeed = Serial.parseInt();
+//      motorSpeed = constrain(motorSpeed, 0,255);
+//
+//      Serial.println(motorSpeed);
+//      analogWrite(motorPin, motorSpeed);
+//    }
+    analogWrite(motorPin, 255);
   } 
   else {
     ////////////////////////////// WEB SERVER //////////////////////////////////
