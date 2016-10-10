@@ -159,7 +159,7 @@ void loop() {
 //      Serial.println(motorSpeed);
 //      analogWrite(motorPin, motorSpeed);
 //    }
-    analogWrite(motorPin, 255);
+    analogWrite(motorPin, 255); //full speed = 200rpm
   } 
   else {
     ////////////////////////////// WEB SERVER //////////////////////////////////
