@@ -8,8 +8,8 @@
 Adafruit_LiquidCrystal lcd(0);
 
 //Initialize pins:
-const int tempProbe = A0;
-byte padRelayPin = 22;
+const int tempProbe = A7;
+byte padRelayPin = 23;
 byte motorPin = 8;
 
 //Log file:
