@@ -1,17 +1,16 @@
-#include <Adafruit_LiquidCrystal.h>
+#include <LiquidCrystal.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <SD.h>
-#include <Ethernet.h>
+
 
 ///////////////////////////////// VARIABLE DECLARATION AND LIBRARY SETUP ////////////////////////////////////////////
 //Initialize the LCD library with I2C:
-Adafruit_LiquidCrystal lcd(0);
+LiquidCrystal lcd(2,3,4,5,6,7);
 
 //Initialize pins:
 const int tempProbe = A0;
-byte padRelayPin = A1;
-byte motorRelayPin = A2;
+byte padRelayPin = 9;
 
 //Log file:
 File logFile;
@@ -28,35 +27,28 @@ byte sensor_bytes_received = 0;       // We need to know how many characters byt
 byte code = 0;                        // used to hold the I2C response code.
 byte in_char = 0;                     // used as a 1 byte buffer to store in bound bytes from the I2C Circuit.
 
-//Initialize webserver: 
-// Enter a MAC address for your controller below.
-byte mac[] = {0x00, 0xAA, 0xBB, 0xCC, 0xDE, 0x02};
-EthernetServer server = EthernetServer(80);
-
 //Time keeping:
 unsigned long previousMillis = 0;
 const long measureInterval = 5000;
 
 void setup() {
   pinMode(padRelayPin, OUTPUT);
-  pinMode(motorRelayPin, OUTPUT);
 
   Serial.begin(9600);
   Wire.begin(); //Initialize I2C bus as slave
   
   //set up the LCD:
   lcd.begin(20, 4);
-  lcd.print("BioreactorBrain v2.0");
+  lcd.print("BioreactorBrain v!.0");
   //Showing the user if everything is going ok during initialization:
   lcd.setCursor(0,1);
   lcd.print("1. SD card...");
   
   //Initializing SD card:
   pinMode(10, OUTPUT);
-  digitalWrite(10, HIGH); //turning ethernet off for just a little bit
   
   //1.Check if card is present and can be used:
-  if(!SD.begin(4)){
+  if(!SD.begin(10)){
     lcd.setCursor(10,1);
     lcd.print(": X");
     return; //do nothing else
@@ -84,20 +76,6 @@ void setup() {
     lcd.print(logFile.name());  
   }
 
-  logFile.close(); //We need to close the file here so we can log the data and 
-                   //use the webserver capabilities later in the code. 
-
-  //Initializing ethernet connection:
-  lcd.setCursor(0,3);
-  lcd.print("2. Internet..."); 
-  if(Ethernet.begin(mac) == 0) {
-    lcd.setCursor(11,3);
-    lcd.print(": X");
-  } else{
-    lcd.setCursor(11,3);
-    lcd.print(": OK");
-    server.begin();
-  }
   delay(5000);
   lcd.clear();
   lcd.print("Sensor readings:");
@@ -123,11 +101,8 @@ void loop() {
     
     //Writing to log file: 
 //    Serial.println(dataString);
-    logFile = SD.open(fileName, FILE_WRITE);
-    if(logFile){
       logFile.println(dataString);
-      logFile.close();
-    }
+      logFile.flush();
   
     //Print to LCD screen 
     lcd.setCursor(0, 1);
@@ -150,79 +125,7 @@ void loop() {
     }else if (temp >37) {
         digitalWrite(padRelayPin, HIGH); //shut pad off when desired temperature is reached
     }
-    
-    digitalWrite(motorRelayPin, LOW); //full speed = 200rpm
   } 
-  else {
-    ////////////////////////////// WEB SERVER //////////////////////////////////
-    //Webserver stuff (modified from: http://www.ladyada.net/learn/arduino/ethfiles.html)
-    char clientline[100];
-    int index = 0;
-    
-    //listen for incoming clients:
-    EthernetClient client = server.available();
-    if (client) {
-      //First, we need to close the logfile: 
-      
-      // an http request ends with a blank line
-      boolean current_line_is_blank = true;
-    
-      // reset the input buffer
-      index = 0;
-    
-      while (client.connected()) {
-        if (client.available()) {
-          char c = client.read();
-          // If it isn't a new line, add the character to the buffer
-          if (c != '\n' && c != '\r') {
-            clientline[index] = c;
-            index++;
-            continue;
-          }
-          // got a \n or \r new line, which means the string is done
-          clientline[index] = 0;
-          // Print it out for debugging
-          Serial.println(clientline);
-          // Look for substring such as a request to get the root file
-          if (strstr (clientline, "GET / ") != 0) {
-            // print all the files:
-            client.println("Files:");
-            ListFiles(client);
-          } 
-          else if (strstr (clientline, "GET /") != 0) {
-            // this time no space after the /, so a sub-file!
-            char *filename;
-            filename = clientline + 5; // look after the "GET /" (5 chars)
-            // a little trick, look for the " HTTP/1.1" string and 
-            // turn the first character of the substring into a 0 to clear it out.
-            (strstr (clientline, " HTTP"))[0] = 0;
-            // print the file we want
-            Serial.println(filename);
-    
-            //Opening file: 
-            File file = SD.open(filename);
-            if (file) {
-              Serial.println("Opened!");
-              int16_t c;
-              while ((c = file.read()) > 0) {
-                // uncomment the serial to debug (slow!)
-                Serial.print((char)c);
-                client.print((char)c);
-            }
-            file.close();
-            }else{
-              Serial.println("File not found!");  
-              client.println("File Not Found!");
-            }
-          }
-          break;
-        }
-      }
-      // give the web browser time to receive the data
-      delay(1);
-      client.stop();
-    }
-  }
 }
 
 ///////////////////////////////// FUNCTIONS ///////////////////////////////////
@@ -303,27 +206,6 @@ void I2CtempCompensation(float temp) {
     Wire.write('request');                          // send temperature value to correct readings
     Wire.endTransmission();                         // end the I2C data transmission.
     delay(300);
-  }
-}
-
-void ListFiles(EthernetClient client) {
-  File root = SD.open("/");
-  root.rewindDirectory();
-  while (true) {
-    File entry =  root.openNextFile();
-    if (!entry) {
-      // no more files
-      break;
-    }
-    if (entry.isDirectory()) {
-      continue;
-    } else {
-      // files have sizes, directories do not
-      client.print(entry.name());
-      client.print("\t");
-      client.println(entry.size(), DEC);
-    }
-    entry.close();
   }
 }
 
